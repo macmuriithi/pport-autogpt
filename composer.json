@@ -1,0 +1,17 @@
+{
+    "name": "pport/autogpt",
+    "description": "Pport AutoGpt is a PHP class that uses LLM to automate task creation based on an objective.The class generates initial tasks based on the objective, executes those tasks, generates new tasks based on the results, and reprioritizes tasks based on the most recent task completed.",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Pport\\Gpt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Martin Muriithi",
+            "email": "macmuriithi@gmail.com"
+        }
+    ],
+    "require": {}
+}
