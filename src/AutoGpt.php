@@ -34,9 +34,10 @@ class AutoGpt
         }
     }
 
-    protected function displayResults($task, $result)
+    public function displayResults($task, $result)
     {
-        echo $task . " " . $result . "<br/><br/>";
+        echo "<h4>" . $task . "</h4>";
+        echo "<p>" . $result . "</p>";
     }
 
     protected function generateObjectiveTasks($objective)
