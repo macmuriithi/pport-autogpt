@@ -8,27 +8,75 @@ class AutoGpt
     protected $objective;
     protected $taskList;
     protected $context;
+    protected $initialTask;
+    protected $taskCounter = 1;
+    protected $completedTasks = [];
 
-    public function __construct($objective, $apiKey)
+    public function __construct($objective = NULL, $initialTask = NULL, $apiKey = NULL)
     {
-        $this->apiKey = $apiKey;
-        $this->objective = $objective;
-        $this->taskList = $this->generateObjectiveTasks($objective);
+        $this->setObjective($objective);
+        $this->setInitialTask($initialTask);
+        $this->setApiKey($apiKey);
         $this->context = [];
     }
 
-    public function executeTasks()
+    protected function generateObjectiveTasks()
     {
+        if ($this->initialTask) {
+            return  $this->storeTask($this->initialTask);
+        } else {
+            $prompt = "Objective: $this->objective\nTask: Generate the first initial task that would meet the objective.\nYour Response:";
+            return $this->sendRequest($prompt);
+        }
+    }
+
+    public function setApiKey($apiKey)
+    {
+        $this->apiKey = $apiKey;
+    }
+
+    public function setObjective($objective)
+    {
+        $this->objective = $objective;
+    }
+
+    public function setInitialTask($initialTask)
+    {
+        $this->initialTask = $initialTask;
+    }
+
+    public function appendNewTasks($newTasks)
+    {
+        foreach ($newTasks as $task) {
+            $this->taskList[] = $task;
+        }
+        return $this->taskList;
+    }
+
+    public function saveCompletedTask($task, $result)
+    {
+        //Save to ResultStorage Engine
+        $this->completedTasks[$this->taskCounter] = ['task' => $task, 'result' => $result];
+        $this->taskCounter = $this->taskCounter + 1;
+    }
+
+    public function run()
+    {
+        $this->generateObjectiveTasks();
         while (true) {
             $currentTask = array_shift($this->taskList);
-            $result = $this->executeTask($currentTask['description']);
-            $this->context[$currentTask['name']] = $result;
+
+            $result = $this->executeTask($currentTask);
+            $this->saveCompletedTask($currentTask, $result);
+
+
             $newTasks = $this->createNewTasks($result);
-            $this->taskList = array_merge($this->taskList, $newTasks);
-            $this->taskList = $this->prioritizeTasks($currentTask['name']);
-            $this->displayResults($currentTask['name'], $result);
+            $taskList = $this->appendNewTasks($newTasks);
+            $this->prioritizeTasks();
+            $this->displayResults($currentTask, $result);
+
             sleep(3);
-            if (count($this->context) > 10) {
+            if ($this->taskCounter > 10) {
                 break;
             }
         }
@@ -36,67 +84,114 @@ class AutoGpt
 
     public function displayResults($task, $result)
     {
-        echo "<h4>" . $task . "</h4>";
+        echo "<h4>" . var_dump($task) . "</h4>";
         echo "<p>" . $result . "</p>";
     }
 
-    protected function generateObjectiveTasks($objective)
+    protected function storeTask($task)
     {
-        $prompt = "Objective: $objective\nTask: Generate initial tasks\n";
-        $tasks = $this->sendRequest($prompt);
-
-        $tasks = explode("\n", $tasks);
-        $taskList = [];
-        foreach ($tasks as $index => $task) {
-            if (!empty($task)) {
-                $taskList[] = ['name' => "Task " . ($index + 1), 'description' => $task];
-            }
-        }
-        return $taskList;
+        $this->taskList[] = $task;
     }
 
-    protected function executeTask($taskDescription)
+    protected function fetchCompletedTasks()
     {
-        $prompt = "Task: $taskDescription\nObjective: Complete the task\n";
-        $result = $this->sendRequest($prompt);
+        if (count($this->completedTasks)) {
+            return "Your previous completed tasks are : " . json_encode($this->completedTasks);
+        }
+        return NULL;
+    }
+
+    protected function executeTask($task)
+    {
+        $taskPrompt = $this->constructTaskPrompt($task);
+        $result = $this->sendRequest($taskPrompt);
         return $result;
     }
 
-    protected function createNewTasks($result)
+    protected function constructTaskPrompt($task)
     {
-        $prompt = "Objective: $this->objective\nTask: Generate new tasks based on the results\n";
-        foreach ($this->context as $taskName => $taskResult) {
-            $prompt .= "Task: $taskName\nResult: $taskResult\n";
+        $contextPrompt = $this->constructContextPrompt();
+        $prompt = "You are an AI who performs one task based on the following objective: {" . $this->objective . "}\n" . $contextPrompt . "\nYour task: {" . $task . "}\nResponse:";
+        return $prompt;
+    }
+
+    protected function constructContextPrompt()
+    {
+        $context = $this->getContext();
+        return count($context) ? "Take into account these previously completed tasks: {" . json_encode($context) . "}\n." : "";
+    }
+
+    protected function getContext()
+    {
+        return $this->completedTasks;
+    }
+
+
+
+    protected function fetchObjective()
+    {
+        return "Your objective is " . $this->objective;
+    }
+
+
+    protected function fetchIncompleteTasks()
+    {
+        if (count($this->getContext())) {
+            return "These are incomplete tasks: " . json_encode($this->taskList);
         }
-        $prompt .= "Results: $result\n";
+        return NULL;
+    }
+
+
+
+    protected function fetchLastTask()
+    {
+        if (count($this->getContext())) {
+            $lastTask = end($this->context);
+            return "Your last task was " . json_encode($lastTask);
+        }
+        return NULL;
+    }
+
+
+
+    protected function createNewTasks()
+    {
+        $prompt = "You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective.";
+        $prompt .= $this->fetchObjective();
+        $prompt .= $this->fetchLastTask();
+        $prompt .= $this->fetchIncompleteTasks();
+        $prompt .= "Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.\n";
+        $prompt .= "Return as a valid JSON list containing the new tasks. Do not add any pre and post texts. Only the valid json.";
         $response = $this->sendRequest($prompt);
 
-        $tasks = explode("\n", $response);
+        $tasks = json_decode($response, true);
         $newTasks = [];
         foreach ($tasks as $index => $task) {
             if (!empty($task)) {
-                $newTasks[] = ['name' => "Task " . (count($this->taskList) + count($newTasks) + 1), 'description' => $task];
+                $newTasks[] = $task;
             }
         }
         return $newTasks;
     }
 
 
-    protected function prioritizeTasks($currentTaskName)
+    protected function prioritizeTasks()
     {
-        $prompt = "Objective: $this->objective\nTask: Reprioritize tasks based on $currentTaskName\n";
-        foreach ($this->taskList as $index => $task) {
-            $prompt .= ($index + 1) . "{$task['name']}\n";
-        }
-        $taskIndexes = $this->sendRequest($prompt);
-        $taskIndexes = explode("\n", $taskIndexes);
-        $newTaskList = [];
-        foreach ($taskIndexes as $taskIndex => $task) {
-            if (!empty($taskIndex)) {
-                $newTaskList[] = $this->taskList[$taskIndex - 1];
-            }
-        }
 
+
+        $prompt = "You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following task list : " . json_encode($this->taskList);
+        $prompt .= "\nConsider the ultimate objective of your team is : " . $this->objective;
+        $prompt .= $this->fetchLastTask();
+        $prompt .= "Now reprioritize all the tasks based on this\n";
+        //$prompt .= $this->fetchCompletedTasks();
+        $prompt .= "Do not remove any tasks. Return the reprioritized tasks as a valid JSON list. Do not add any pre or post explanation texts. The JSON should only list the task-description. Do not add named keys on the JSON, just the list of descriptions.";
+        $response = $this->sendRequest($prompt);
+        $tasks = json_decode($response, true);
+        $newTaskList = [];
+        foreach ($tasks as $task) {
+            $newTaskList[] = $task;
+        }
         return $newTaskList;
     }
 
