@@ -8,7 +8,10 @@ First, you will need an API key. You can obtain one from your OpenAI. Once you h
 
 ```php
 $autogpt = new Pport\AutoGpt($objective, $apiKey);
-$autogpt->executeTasks();
+$agent->setApiKey('OPENAI_KEY');
+$agent->setObjective("Create A Blog Post bout Artificial Intelligence");
+$agent->setInitialTask("Research the best ideas");
+$agent->run();
 ```
 
 The `$objective` parameter is a string that defines the end goal of the task. The `$apiKey` parameter is the key provided by the GTP-3 provider.
@@ -21,9 +24,9 @@ The executeTasks() method will loop through each task until the objective is rea
 
 Constructs the AutoGpt class with the given $objective and $apiKey.
 
-### executeTasks()
+### run()
 
-Executes the list of tasks until the objective is reached.
+Generates first task if none exists and then recursively executes the list of tasks until the objective is reached.
 
 ### generateObjectiveTasks($objective)
 
