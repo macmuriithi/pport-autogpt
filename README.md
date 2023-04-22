@@ -7,7 +7,7 @@ PHP-AutoGpt is a simple class implementation designed to showcase capabilities o
 First, you will need an API key. You can obtain one from your OpenAI. Once you have your key, include it when constructing the class.
 
 ```php
-$autogpt = new Pport\AutoGpt($objective, $apiKey);
+$autogpt = new Pport\AutoGpt();
 $agent->setApiKey('OPENAI_KEY');
 $agent->setObjective("Create A Blog Post bout Artificial Intelligence");
 $agent->setInitialTask("Research the best ideas");
