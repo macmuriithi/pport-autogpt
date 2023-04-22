@@ -45,7 +45,7 @@ class AutoGpt
         $this->initialTask = $initialTask;
     }
 
-    public function appendNewTasks($newTasks)
+    protected function appendNewTasks($newTasks)
     {
         foreach ($newTasks as $task) {
             $this->taskList[] = $task;
@@ -53,7 +53,7 @@ class AutoGpt
         return $this->taskList;
     }
 
-    public function saveCompletedTask($task, $result)
+    protected function saveCompletedTask($task, $result)
     {
         //Save to ResultStorage Engine
         $this->completedTasks[$this->taskCounter] = ['task' => $task, 'result' => $result];
@@ -141,7 +141,6 @@ class AutoGpt
         }
         return NULL;
     }
-
 
 
     protected function fetchLastTask()
