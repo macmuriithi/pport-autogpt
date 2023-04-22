@@ -20,7 +20,7 @@ The executeTasks() method will loop through each task until the objective is rea
 
 ## Methods
 
-### \_\_construct($objective, $apiKey)
+### \_\_construct($objective,$initialTask, $apiKey)
 
 Constructs the AutoGpt class with the given $objective and $apiKey.
 
@@ -28,19 +28,19 @@ Constructs the AutoGpt class with the given $objective and $apiKey.
 
 Generates first task if none exists and then recursively executes the list of tasks until the objective is reached.
 
-### generateObjectiveTasks($objective)
+### generateObjectiveTasks()
 
 Generates the initial list of tasks based on the given objective.
 
-### executeTask($taskDescription)
+### executeTask()
 
 Executes the given task.
 
-### createNewTasks($result)
+### createNewTasks()
 
 Generates new tasks based on the result of the previous task.
 
-### prioritizeTasks($currentTaskName)
+### prioritizeTasks()
 
 Prioritizes the list of tasks based on the given current task.
 
