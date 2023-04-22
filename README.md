@@ -14,9 +14,7 @@ $agent->setInitialTask("Research the best ideas");
 $agent->run();
 ```
 
-The `$objective` parameter is a string that defines the end goal of the task. The `$apiKey` parameter is the key provided by the GTP-3 provider.
-
-The executeTasks() method will loop through each task until the objective is reached. It will automatically generate new tasks based on the results of the previous task and prioritize the tasks accordingly.
+The run() method will loop through each task until the objective is reached. It will automatically generate new tasks based on the results of the previous task and prioritize the tasks accordingly.
 
 ## Methods
 
